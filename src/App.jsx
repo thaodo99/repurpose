@@ -176,47 +176,63 @@ export default function App() {
   const [loading, setLoading] = useState({});
   const [copiedHook, setCopiedHook] = useState(null);
   const [copiedPlatform, setCopiedPlatform] = useState(null);
+  const [gdocUrl, setGdocUrl] = useState("");
 
   const handleFileUpload = async (file) => {
     const ext = file.name.split(".").pop().toLowerCase();
-    if (ext === "txt" || ext === "csv") {
-      const text = await file.text();
-      setInput(text);
-    } else if (ext === "docx") {
-      const mammoth = await import("mammoth");
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      setInput(result.value);
-    } else if (ext === "pdf") {
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let text = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map((item) => item.str).join(" ") + "\n";
+    try {
+      if (ext === "txt" || ext === "csv") {
+        const text = await file.text();
+        setInput(text);
+      } else if (ext === "docx") {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        setInput(result.value);
+      } else if (ext === "pdf") {
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((item) => item.str).join(" ") + "\n";
+        }
+        setInput(text);
+      } else {
+        alert("Unsupported file type. Use .txt, .pdf, .docx, or .csv");
+        return;
       }
-      setInput(text);
+      setAnalysis(null);
+      setResults({});
+    } catch (err) {
+      alert("Failed to read file: " + err.message);
     }
-    setAnalysis(null);
-    setResults({});
   };
 
-  const handleGoogleDoc = async (url) => {
-    if (!url.includes("docs.google.com")) return;
-    const docId = url.match(/[-\w]{25,}/)?.[0];
-    if (!docId) return;
+  const handleGoogleDoc = async () => {
+    const url = gdocUrl.trim();
+    if (!url || (!url.includes("docs.google.com") && !url.includes("drive.google.com"))) {
+      alert("Please paste a valid Google Docs or Drive URL");
+      return;
+    }
+    const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
+    if (!docId) {
+      alert("Couldn't extract document ID from URL");
+      return;
+    }
     const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
     try {
       const res = await fetch(exportUrl);
+      if (!res.ok) throw new Error("Could not fetch document");
       const text = await res.text();
       setInput(text);
       setAnalysis(null);
       setResults({});
     } catch {
-      alert("Make sure the Google Doc is set to 'Anyone with the link can view'");
+      alert("Make sure the document is set to 'Anyone with the link can view'");
     }
   };
 
@@ -327,14 +343,23 @@ export default function App() {
           />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <label style={{ fontSize: 12, color: "#555", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414", whiteSpace: "nowrap" }}>
-              Upload file
+              Upload file (.txt .pdf .docx .csv)
               <input type="file" accept=".txt,.pdf,.docx,.csv" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
             </label>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <input
-              placeholder="Or paste a Google Doc URL..."
-              onBlur={(e) => handleGoogleDoc(e.target.value)}
+              value={gdocUrl}
+              onChange={(e) => setGdocUrl(e.target.value)}
+              placeholder="Or paste a Google Doc / Drive URL..."
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
+            <button
+              onClick={handleGoogleDoc}
+              style={{ fontSize: 12, color: "#C9A84C", border: "1px solid #C9A84C44", borderRadius: 6, padding: "7px 14px", background: "transparent", cursor: "pointer", fontFamily: "sans-serif", whiteSpace: "nowrap" }}
+            >
+              Fetch →
+            </button>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
             <button onClick={analyzeContent} disabled={!input.trim() || analysisLoading} style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: `1px solid ${input.trim() && !analysisLoading ? "#1D9E75" : "#222"}`, background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}>
@@ -454,11 +479,9 @@ export default function App() {
                 const pct = Math.round(((val - cfg.min) / (cfg.max - cfg.min)) * 100);
                 return (
                   <div key={p.id}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ width: 16, height: 16, borderRadius: 3, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 700, color: "#fff", fontFamily: "sans-serif" }}>{p.icon}</span>
-                        <span style={{ fontSize: 11, fontFamily: "sans-serif", color: "#666" }}>{p.label}</span>
-                      </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                      <span style={{ width: 16, height: 16, borderRadius: 3, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 700, color: "#fff", fontFamily: "sans-serif" }}>{p.icon}</span>
+                      <span style={{ fontSize: 11, fontFamily: "sans-serif", color: "#666" }}>{p.label}</span>
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "#C9A84C" }}>{val}<span style={{ fontSize: 10, color: "#444", fontWeight: 400 }}> {cfg.label || "w"}</span></span>
                     <input type="range" min={cfg.min} max={cfg.max} step={10} value={val} onChange={(e) => setWordLimits(prev => ({ ...prev, [p.id]: Number(e.target.value) }))} style={{ background: `linear-gradient(to right, #C9A84C ${pct}%, #252525 ${pct}%)`, marginTop: 6 }} />
