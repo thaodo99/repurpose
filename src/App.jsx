@@ -2,7 +2,7 @@ import { useState } from "react";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.6.205/build/pdf.worker.min.mjs`;
 
 const GOALS = [
   { id: "awareness", label: "Awareness" },
@@ -229,31 +229,44 @@ export default function App() {
   const handleUrlFetch = async () => {
     const url = urlInput.trim();
     if (!url) return;
-
+  
     if (url.includes("drive.google.com/file")) {
-      alert("Google Drive PDF links cannot be fetched due to browser security restrictions. Please download the PDF and upload it using the Upload button instead.");
+      alert("Google Drive PDFs can't be fetched. Please download and upload the file instead.");
       return;
     }
-
-    if (!url.includes("docs.google.com/document")) {
-      alert("Please paste a Google Docs URL (it should contain docs.google.com/document/...)");
-      return;
-    }
-
+  
     setUrlLoading(true);
     try {
-      const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
-      if (!docId) throw new Error("Could not extract document ID from URL");
-      const exportUrl = "https://docs.google.com/document/d/" + docId + "/export?format=txt";
-      const res = await fetch(exportUrl);
-      if (!res.ok) throw new Error("Could not fetch document. Make sure sharing is set to Anyone with the link can view");
-      const text = await res.text();
-      if (!text.trim()) throw new Error("Document appears to be empty");
+      let text = "";
+  
+      if (url.includes("docs.google.com/document")) {
+        const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
+        if (!docId) throw new Error("Could not extract document ID from URL");
+        const exportUrl = "https://docs.google.com/document/d/" + docId + "/export?format=txt";
+        const res = await fetch(exportUrl);
+        if (!res.ok) throw new Error("Could not fetch. Make sure sharing is set to Anyone with the link can view");
+        text = await res.text();
+      } else {
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error("Could not fetch the page. It may be paywalled or private.");
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        ["script", "style", "nav", "header", "footer", "aside", "iframe", "noscript"].forEach(tag => {
+          doc.querySelectorAll(tag).forEach(el => el.remove());
+        });
+        const article = doc.querySelector("article") || doc.querySelector("main") || doc.body;
+        text = article.innerText || article.textContent || "";
+        text = text.replace(/\s+/g, " ").trim();
+      }
+  
+      if (!text.trim()) throw new Error("Could not extract text from this page.");
       setInput(text);
       setAnalysis(null);
       setResults({});
       setUrlInput("");
-      setFileStatus("Loaded from Google Docs (" + text.trim().split(/\s+/).length + " words)");
+      setFileStatus("Loaded from URL (" + text.trim().split(/\s+/).length + " words)");
     } catch (err) {
       alert(err.message);
     }
@@ -382,7 +395,7 @@ export default function App() {
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleUrlFetch()}
-              placeholder="Or paste a Google Docs URL (docs.google.com/document/...)..."
+              placeholder="Paste any URL — article, Google Docs, Forbes, BBC..."
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
             <button
