@@ -1,16 +1,21 @@
-# React + Vite
+# Repurpose — AI Marketing Intelligence Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack AI-powered content repurposing tool that transforms any article, transcript, or notes into platform-native marketing content — with strategic controls that mirror real marketing workflows.
 
-Currently, two official plugins are available:
+**Live demo:** https://repurpose-silk.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## What it does
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Paste any source content and the app will:
 
-## Expanding the ESLint configuration
+- **Analyze** the content: extract themes, generate 3 hook variants (curiosity, stat-led, contrarian), and map each idea to the best platform
+- **Configure** your strategy: set campaign goal, target audience, CTA mode, writing style, emoji density, and word limits per platform
+- **Generate** platform-native posts for LinkedIn, Twitter/X threads, and email newsletters simultaneously — each with a "Why it works" explanation
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Why I built this
+
+Most AI writing tools are just text generators. This is built to reflect how a marketing strategist actually thinks — goal-first, audience-aware, and platform-specific. The content reuse map and hook optimizer were inspired by real content workflows at growth-stage companies
