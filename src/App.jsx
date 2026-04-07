@@ -36,12 +36,16 @@ const PLATFORMS = [
   { id: "linkedin", label: "LinkedIn", icon: "in", color: "#0077B5" },
   { id: "twitter", label: "Tweet Thread", icon: "𝕏", color: "#1a1a1a" },
   { id: "email", label: "Email Newsletter", icon: "✉", color: "#6B46C1" },
+  { id: "instagram", label: "Instagram", icon: "IG", color: "#E1306C" },
+  { id: "facebook", label: "Facebook", icon: "fb", color: "#1877F2" },
 ];
 
 const WORD_LIMITS = {
   linkedin: { min: 50, max: 300, default: 150 },
   twitter: { min: 20, max: 120, default: 60, label: "per tweet" },
   email: { min: 80, max: 400, default: 200 },
+  instagram: { min: 30, max: 200, default: 100, label: "words" },
+  facebook: { min: 50, max: 300, default: 150, label: "words" },
 };
 
 const THEME_COLORS = {
@@ -123,12 +127,16 @@ function buildGenerationPrompt(platformId, settings, input) {
     linkedin: `Max ${wordLimit} words total.`,
     twitter: `Each tweet max ${wordLimit} words. 5–7 tweets numbered (1/, 2/, ...). Blank line between each.`,
     email: `Body max ${wordLimit} words. Must include "Subject:" label and "CTA:" label.`,
+    instagram: `Max ${wordLimit} words. Short punchy lines.`,
+    facebook: `Max ${wordLimit} words total.`,
   };
 
   const platformBase = {
     linkedin: "LinkedIn post. Strong hook in line 1. 3–5 relevant hashtags at the bottom.",
     twitter: "Twitter/X thread. First tweet = attention-grabbing hook. Last tweet = CTA or summary.",
     email: "Email newsletter snippet: Subject: label, engaging opening, 2–3 body paragraphs, CTA: label.",
+    instagram: "Instagram caption. Hook in line 1. Heavy use of line breaks for readability. 5–10 hashtags at the bottom. Punchy and visual — write as if describing something the viewer can see.",
+    facebook: "Facebook post. Conversational and warm. Longer form is fine. Tell a story or share an opinion. End with a question to drive comments. 1–2 hashtags max.",
   };
 
   return `You are a senior marketing strategist and expert copywriter.
