@@ -247,10 +247,11 @@ export default function App() {
         if (!res.ok) throw new Error("Could not fetch. Make sure sharing is set to Anyone with the link can view");
         text = await res.text();
       } else {
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
         const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error("Could not fetch the page. It may be paywalled or private.");
-        const html = await res.text();
+        const data = await res.json();
+        const html = data.contents;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
         ["script", "style", "nav", "header", "footer", "aside", "iframe", "noscript"].forEach(tag => {
