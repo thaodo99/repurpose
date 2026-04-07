@@ -352,6 +352,7 @@ export default function App() {
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
           </div>
+        </div>
 
         {/* ── 02 · Content Intelligence ── */}
         {(analysis || analysisLoading) && (
