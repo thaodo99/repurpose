@@ -185,6 +185,52 @@ export default function App() {
   const [copiedPlatform, setCopiedPlatform] = useState(null);
 
   console.log("API KEY:", import.meta.env.VITE_ANTHROPIC_API_KEY);
+  const handleFileUpload = async (file) => {
+    const ext = file.name.split(".").pop().toLowerCase();
+  
+    if (ext === "txt") {
+      const text = await file.text();
+      setInput(text);
+  
+    } else if (ext === "csv") {
+      const text = await file.text();
+      setInput(text);
+  
+    } else if (ext === "docx") {
+      const mammoth = await import("mammoth");
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      setInput(result.value);
+  
+    } else if (ext === "pdf") {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      setInput(text);
+    }
+  };
+  
+  const handleGoogleDoc = async (url) => {
+    if (!url.includes("docs.google.com")) return;
+    const docId = url.match(/[-\w]{25,}/)?.[0];
+    if (!docId) return;
+    const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+    try {
+      const res = await fetch(exportUrl);
+      const text = await res.text();
+      setInput(text);
+    } catch {
+      alert("Make sure the Google Doc is set to 'Anyone with the link can view'");
+    }
+  };
+
   const callClaude = async (prompt, maxTokens = 900) => {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -293,12 +339,19 @@ export default function App() {
             placeholder="Paste content here..."
             style={{ width: "100%", minHeight: 130, background: "#141414", border: "1px solid #222", borderRadius: 8, padding: "14px 18px", color: "#F0EDE6", fontSize: 15, lineHeight: 1.7, fontFamily: "'Georgia', serif", resize: "vertical", outline: "none", boxSizing: "border-box" }}
           />
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-            <button onClick={analyzeContent} disabled={!input.trim() || analysisLoading} style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: `1px solid ${input.trim() && !analysisLoading ? "#1D9E75" : "#222"}`, background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}>
-              {analysisLoading ? "Analyzing..." : "Analyze Content →"}
-            </button>
+
+          {/* File upload + Google Doc URL */}
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <label style={{ fontSize: 12, color: "#555", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414" }}>
+              Upload file
+              <input type="file" accept=".txt,.pdf,.docx,.csv" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
+            </label>
+            <input
+              placeholder="Or paste a Google Doc URL..."
+              onBlur={(e) => handleGoogleDoc(e.target.value)}
+              style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
+            />
           </div>
-        </div>
 
         {/* ── 02 · Content Intelligence ── */}
         {(analysis || analysisLoading) && (
