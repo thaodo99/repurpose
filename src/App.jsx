@@ -2,7 +2,7 @@ import { useState } from "react";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
 
 const GOALS = [
   { id: "awareness", label: "Awareness" },
@@ -86,7 +86,7 @@ function buildAnalysisPrompt(input) {
   }
 }
 Rules:
-- themes: 5–9 items total
+- themes: 5-9 items total
 - hooks: punchy, specific, avoid generic phrasing
 Content:
 ${input}`;
@@ -96,55 +96,55 @@ function buildGenerationPrompt(platformId, settings, input) {
   const { goal, audience, ctaMode, storySlider, emoji, titles, wordLimit } = settings;
 
   const goalMap = {
-    awareness: "Brand awareness — make the insight memorable and shareable. No selling.",
-    leadgen: "Lead generation — create curiosity around a solution. End with a clear invitation.",
-    thought_leadership: "Thought leadership — share a bold opinion or original framework.",
-    product_launch: "Product launch — build excitement. Focus on transformation, not features.",
-    hiring: "Hiring — showcase team culture, values, and what makes this opportunity special.",
-    engagement: "Community engagement — spark discussion. Be provocative or emotionally resonant.",
+    awareness: "Brand awareness - make the insight memorable and shareable. No selling.",
+    leadgen: "Lead generation - create curiosity around a solution. End with a clear invitation.",
+    thought_leadership: "Thought leadership - share a bold opinion or original framework.",
+    product_launch: "Product launch - build excitement. Focus on transformation, not features.",
+    hiring: "Hiring - showcase team culture, values, and what makes this opportunity special.",
+    engagement: "Community engagement - spark discussion. Be provocative or emotionally resonant.",
   };
 
   const audienceMap = {
-    founders: "Audience: founders & entrepreneurs. Speak to scale, risk, and growth decisions.",
+    founders: "Audience: founders and entrepreneurs. Speak to scale, risk, and growth decisions.",
     pms: "Audience: product managers. Speak to trade-offs, user empathy, and shipping.",
     analysts: "Audience: data analysts. Speak to evidence, metrics, and structured thinking.",
-    recruiters: "Audience: recruiters & talent leaders. Speak to people, process, and culture.",
-    enterprise: "Audience: enterprise buyers & executives. Speak to ROI and strategic outcomes.",
+    recruiters: "Audience: recruiters and talent leaders. Speak to people, process, and culture.",
+    enterprise: "Audience: enterprise buyers and executives. Speak to ROI and strategic outcomes.",
     general: "Audience: general professional audience. Keep it clear and broadly relatable.",
   };
 
   const ctaMap = {
-    soft: "CTA style: Soft — end with a gentle reflection. No explicit ask.",
-    strong: "CTA style: Strong — a specific, direct call to action.",
-    question: "CTA style: Question-driven — close with a thought-provoking question.",
-    authority: "CTA style: Authority positioning — a confident closing statement.",
+    soft: "CTA style: Soft - end with a gentle reflection. No explicit ask.",
+    strong: "CTA style: Strong - a specific, direct call to action.",
+    question: "CTA style: Question-driven - close with a thought-provoking question.",
+    authority: "CTA style: Authority positioning - a confident closing statement.",
   };
 
   const storyLabel =
-    storySlider <= 20 ? "purely analytical — logic, data, structured argument"
+    storySlider <= 20 ? "purely analytical - logic, data, structured argument"
     : storySlider <= 45 ? "analytical with narrative texture"
     : storySlider <= 65 ? "balanced analytical and narrative"
     : storySlider <= 85 ? "narrative-first with analytical grounding"
-    : "pure storytelling — scene, tension, resolution";
+    : "pure storytelling - scene, tension, resolution";
 
   const emojiMap = {
     none: "No emoji whatsoever.",
-    some: "2–4 emoji sparingly.",
-    many: "Emoji generously — as bullets, section markers, and emphasis.",
+    some: "2-4 emoji sparingly.",
+    many: "Emoji generously - as bullets, section markers, and emphasis.",
   };
 
   const wordNote = {
     linkedin: `Max ${wordLimit} words total.`,
-    twitter: `Each tweet max ${wordLimit} words. 5–7 tweets numbered (1/, 2/, ...). Blank line between each.`,
-    email: `Body max ${wordLimit} words. Must include "Subject:" label and "CTA:" label.`,
-    instagram: `Max ${wordLimit} words. Short punchy lines. 5–10 hashtags at the bottom.`,
+    twitter: `Each tweet max ${wordLimit} words. 5-7 tweets numbered (1/, 2/, ...). Blank line between each.`,
+    email: `Body max ${wordLimit} words. Must include Subject: label and CTA: label.`,
+    instagram: `Max ${wordLimit} words. Short punchy lines. 5-10 hashtags at the bottom.`,
     facebook: `Max ${wordLimit} words total. End with a question to drive comments.`,
   };
 
   const platformBase = {
-    linkedin: "LinkedIn post. Strong hook in line 1. 3–5 relevant hashtags at the bottom.",
+    linkedin: "LinkedIn post. Strong hook in line 1. 3-5 relevant hashtags at the bottom.",
     twitter: "Twitter/X thread. First tweet = hook. Last tweet = CTA or summary.",
-    email: "Email newsletter snippet: Subject: label, engaging opening, 2–3 body paragraphs, CTA: label.",
+    email: "Email newsletter snippet: Subject: label, engaging opening, 2-3 body paragraphs, CTA: label.",
     instagram: "Instagram caption. Hook in line 1. Heavy line breaks. Punchy and visual.",
     facebook: "Facebook post. Conversational and warm. Tell a story or share an opinion.",
   };
@@ -210,7 +210,7 @@ export default function App() {
         const arrayBuffer = await file.arrayBuffer();
         text = await extractTextFromPdf(arrayBuffer);
       } else {
-        setFileStatus("Unsupported file type.");
+        setFileStatus("Unsupported file type. Use .txt, .pdf, or .docx");
         return;
       }
       if (!text.trim()) {
@@ -220,7 +220,7 @@ export default function App() {
       setInput(text);
       setAnalysis(null);
       setResults({});
-      setFileStatus(`✓ ${file.name} loaded (${text.trim().split(/\s+/).length} words)`);
+      setFileStatus("Loaded: " + file.name + " (" + text.trim().split(/\s+/).length + " words)");
     } catch (err) {
       setFileStatus("Error reading file: " + err.message);
     }
@@ -229,41 +229,31 @@ export default function App() {
   const handleUrlFetch = async () => {
     const url = urlInput.trim();
     if (!url) return;
+
+    if (url.includes("drive.google.com/file")) {
+      alert("Google Drive PDF links cannot be fetched due to browser security restrictions. Please download the PDF and upload it using the Upload button instead.");
+      return;
+    }
+
+    if (!url.includes("docs.google.com/document")) {
+      alert("Please paste a Google Docs URL (it should contain docs.google.com/document/...)");
+      return;
+    }
+
     setUrlLoading(true);
-
     try {
-      // Google Docs
-      if (url.includes("docs.google.com/document") || url.includes("drive.google.com")) {
-        const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
-        if (!docId) throw new Error("Couldn't extract document ID");
-
-        // Try as Google Doc text export
-        const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
-        const res = await fetch(exportUrl);
-        if (!res.ok) throw new Error("Could not fetch — make sure sharing is set to 'Anyone with the link'");
-        const text = await res.text();
-        setInput(text);
-        setAnalysis(null);
-        setResults({});
-        setUrlInput("");
-
-      // Google Drive PDF
-      } else if (url.includes("drive.google.com/file")) {
-        const fileId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
-        if (!fileId) throw new Error("Couldn't extract file ID");
-        const pdfUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        const res = await fetch(pdfUrl);
-        if (!res.ok) throw new Error("Could not fetch PDF");
-        const arrayBuffer = await res.arrayBuffer();
-        const text = await extractTextFromPdf(arrayBuffer);
-        setInput(text);
-        setAnalysis(null);
-        setResults({});
-        setUrlInput("");
-
-      } else {
-        throw new Error("Please paste a Google Docs or Google Drive URL");
-      }
+      const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
+      if (!docId) throw new Error("Could not extract document ID from URL");
+      const exportUrl = "https://docs.google.com/document/d/" + docId + "/export?format=txt";
+      const res = await fetch(exportUrl);
+      if (!res.ok) throw new Error("Could not fetch document. Make sure sharing is set to Anyone with the link can view");
+      const text = await res.text();
+      if (!text.trim()) throw new Error("Document appears to be empty");
+      setInput(text);
+      setAnalysis(null);
+      setResults({});
+      setUrlInput("");
+      setFileStatus("Loaded from Google Docs (" + text.trim().split(/\s+/).length + " words)");
     } catch (err) {
       alert(err.message);
     }
@@ -355,7 +345,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {[["01 Analyze", !!analysis], ["02 Configure", true], ["03 Generate", hasResults]].map(([s, done]) => (
-            <span key={s} style={{ fontSize: 10, fontFamily: "sans-serif", padding: "3px 10px", borderRadius: 20, border: `1px solid ${done ? "#C9A84C44" : "#1E1E1E"}`, color: done ? "#C9A84C" : "#2E2E2E" }}>{s}</span>
+            <span key={s} style={{ fontSize: 10, fontFamily: "sans-serif", padding: "3px 10px", borderRadius: 20, border: "1px solid " + (done ? "#C9A84C44" : "#1E1E1E"), color: done ? "#C9A84C" : "#2E2E2E" }}>{s}</span>
           ))}
         </div>
       </div>
@@ -366,7 +356,7 @@ export default function App() {
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 11, color: "#444", fontFamily: "sans-serif" }}>Paste any article, transcript, or notes</span>
-            <button onClick={() => { setInput(EXAMPLE); setAnalysis(null); setResults({}); setFileStatus(""); }} style={{ fontSize: 12, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", fontFamily: "sans-serif", padding: 0 }}>Load example →</button>
+            <button onClick={() => { setInput(EXAMPLE); setAnalysis(null); setResults({}); setFileStatus(""); }} style={{ fontSize: 12, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", fontFamily: "sans-serif", padding: 0 }}>Load example</button>
           </div>
           <textarea
             value={input}
@@ -375,32 +365,42 @@ export default function App() {
             style={{ width: "100%", minHeight: 130, background: "#141414", border: "1px solid #222", borderRadius: 8, padding: "14px 18px", color: "#F0EDE6", fontSize: 15, lineHeight: 1.7, fontFamily: "'Georgia', serif", resize: "vertical", outline: "none", boxSizing: "border-box" }}
           />
 
-          {/* File Upload */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
             <label style={{ fontSize: 12, color: "#666", border: "1px solid #222", borderRadius: 6, padding: "7px 16px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414", whiteSpace: "nowrap" }}>
               Upload .txt / .pdf / .docx
               <input type="file" accept=".txt,.pdf,.docx" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
             </label>
-            {fileStatus && <span style={{ fontSize: 11, color: fileStatus.startsWith("✓") ? "#1D9E75" : "#D4537E", fontFamily: "sans-serif" }}>{fileStatus}</span>}
+            {fileStatus && (
+              <span style={{ fontSize: 11, color: fileStatus.startsWith("Error") || fileStatus.startsWith("Unsupported") || fileStatus.startsWith("Could") ? "#D4537E" : "#1D9E75", fontFamily: "sans-serif" }}>
+                {fileStatus.startsWith("Error") || fileStatus.startsWith("Unsupported") || fileStatus.startsWith("Could") ? fileStatus : "✓ " + fileStatus}
+              </span>
+            )}
           </div>
 
-          {/* Google URL */}
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <input
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleUrlFetch()}
-              placeholder="Or paste a Google Doc / Drive PDF URL..."
+              placeholder="Or paste a Google Docs URL (docs.google.com/document/...)..."
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
-            <button onClick={handleUrlFetch} disabled={!urlInput.trim() || urlLoading} style={{ fontSize: 12, color: urlInput.trim() ? "#C9A84C" : "#333", border: `1px solid ${urlInput.trim() ? "#C9A84C44" : "#222"}`, borderRadius: 6, padding: "7px 16px", background: "transparent", cursor: urlInput.trim() ? "pointer" : "not-allowed", fontFamily: "sans-serif", whiteSpace: "nowrap" }}>
-              {urlLoading ? "Fetching..." : "Fetch →"}
+            <button
+              onClick={handleUrlFetch}
+              disabled={!urlInput.trim() || urlLoading}
+              style={{ fontSize: 12, color: urlInput.trim() && !urlLoading ? "#C9A84C" : "#333", border: "1px solid " + (urlInput.trim() ? "#C9A84C44" : "#222"), borderRadius: 6, padding: "7px 16px", background: "transparent", cursor: urlInput.trim() && !urlLoading ? "pointer" : "not-allowed", fontFamily: "sans-serif", whiteSpace: "nowrap" }}
+            >
+              {urlLoading ? "Fetching..." : "Fetch"}
             </button>
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-            <button onClick={analyzeContent} disabled={!input.trim() || analysisLoading} style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: `1px solid ${input.trim() && !analysisLoading ? "#1D9E75" : "#222"}`, background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}>
-              {analysisLoading ? "Analyzing..." : "Analyze Content →"}
+            <button
+              onClick={analyzeContent}
+              disabled={!input.trim() || analysisLoading}
+              style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: "1px solid " + (input.trim() && !analysisLoading ? "#1D9E75" : "#222"), background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}
+            >
+              {analysisLoading ? "Analyzing..." : "Analyze Content"}
             </button>
           </div>
         </div>
@@ -433,11 +433,11 @@ export default function App() {
                       { key: "stat", label: "Stat-led hook", color: "#C9A84C" },
                       { key: "contrarian", label: "Contrarian hook", color: "#D4537E" },
                     ].map(({ key, label, color }) => (
-                      <div key={key} style={{ background: "#141414", border: `1px solid ${color}25`, borderRadius: 8, padding: "12px 14px", position: "relative" }}>
+                      <div key={key} style={{ background: "#141414", border: "1px solid " + color + "25", borderRadius: 8, padding: "12px 14px", position: "relative" }}>
                         <div style={{ fontSize: 10, color, fontFamily: "sans-serif", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>
                         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: "#B8B4AC", fontFamily: "'Georgia', serif" }}>"{analysis.hooks?.[key]}"</p>
                         <button onClick={() => copyHook(key, analysis.hooks?.[key])} style={{ position: "absolute", top: 10, right: 10, fontSize: 10, color: copiedHook === key ? "#6ECC8E" : "#333", background: "none", border: "none", cursor: "pointer", fontFamily: "sans-serif" }}>
-                          {copiedHook === key ? "✓" : "copy"}
+                          {copiedHook === key ? "done" : "copy"}
                         </button>
                       </div>
                     ))}
@@ -447,11 +447,11 @@ export default function App() {
                     {analysis.themes?.map((theme, i) => {
                       const color = THEME_COLORS[theme.type] || "#666";
                       return (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6, background: `${color}0D`, border: `1px solid ${color}28`, borderRadius: 6, padding: "6px 10px", maxWidth: 300 }}>
-                          <span style={{ fontSize: 9, color, background: `${color}1A`, padding: "2px 6px", borderRadius: 3, flexShrink: 0, letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 1, fontFamily: "sans-serif" }}>{theme.type}</span>
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6, background: color + "0D", border: "1px solid " + color + "28", borderRadius: 6, padding: "6px 10px", maxWidth: 300 }}>
+                          <span style={{ fontSize: 9, color, background: color + "1A", padding: "2px 6px", borderRadius: 3, flexShrink: 0, letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 1, fontFamily: "sans-serif" }}>{theme.type}</span>
                           <span style={{ fontSize: 12, fontFamily: "sans-serif", color: "#777", lineHeight: 1.4 }}>{theme.content}</span>
                           {theme.platform && theme.platform !== "all" && (
-                            <span style={{ fontSize: 9, color: "#333", fontFamily: "monospace", marginLeft: "auto", flexShrink: 0, alignSelf: "center" }}>→ {theme.platform}</span>
+                            <span style={{ fontSize: 9, color: "#333", fontFamily: "monospace", marginLeft: "auto", flexShrink: 0, alignSelf: "center" }}>to {theme.platform}</span>
                           )}
                         </div>
                       );
@@ -490,7 +490,7 @@ export default function App() {
                 <span style={{ fontSize: 11, color: "#C9A84C", fontFamily: "monospace", fontWeight: 600 }}>{storyLabel}</span>
                 <span style={{ fontSize: 11, color: "#444", fontFamily: "sans-serif" }}>Storytelling</span>
               </div>
-              <input type="range" min={0} max={100} step={5} value={storySlider} onChange={(e) => setStorySlider(Number(e.target.value))} style={{ background: `linear-gradient(to right, #C9A84C ${storySlider}%, #252525 ${storySlider}%)` }} />
+              <input type="range" min={0} max={100} step={5} value={storySlider} onChange={(e) => setStorySlider(Number(e.target.value))} style={{ background: "linear-gradient(to right, #C9A84C " + storySlider + "%, #252525 " + storySlider + "%)" }} />
               <p style={{ margin: "10px 0 0", fontSize: 11, color: "#3A3A3A", fontFamily: "sans-serif", lineHeight: 1.5 }}>
                 {storySlider <= 30 ? "Logic-first. Evidence and structure lead every paragraph." : storySlider <= 70 ? "Mix of data and narrative. Grounded but human." : "Story-first. Scene, tension, and resolution drive the post."}
               </p>
@@ -519,7 +519,7 @@ export default function App() {
                       <span style={{ fontSize: 11, fontFamily: "sans-serif", color: "#666" }}>{p.label}</span>
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "#C9A84C" }}>{val}<span style={{ fontSize: 10, color: "#444", fontWeight: 400 }}> {cfg.label || "w"}</span></span>
-                    <input type="range" min={cfg.min} max={cfg.max} step={10} value={val} onChange={(e) => setWordLimits(prev => ({ ...prev, [p.id]: Number(e.target.value) }))} style={{ background: `linear-gradient(to right, #C9A84C ${pct}%, #252525 ${pct}%)`, marginTop: 6 }} />
+                    <input type="range" min={cfg.min} max={cfg.max} step={10} value={val} onChange={(e) => setWordLimits(prev => ({ ...prev, [p.id]: Number(e.target.value) }))} style={{ background: "linear-gradient(to right, #C9A84C " + pct + "%, #252525 " + pct + "%)", marginTop: 6 }} />
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
                       <span style={{ fontSize: 9, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.min}</span>
                       <span style={{ fontSize: 9, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.max}</span>
@@ -533,7 +533,7 @@ export default function App() {
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
           <button onClick={repurpose} disabled={!input.trim() || anyLoading} style={{ background: input.trim() && !anyLoading ? "#C9A84C" : "#161616", color: input.trim() && !anyLoading ? "#0D0D0D" : "#333", border: "none", borderRadius: 6, padding: "12px 36px", fontSize: 14, fontWeight: 700, fontFamily: "sans-serif", cursor: input.trim() && !anyLoading ? "pointer" : "not-allowed", letterSpacing: "0.04em" }}>
-            {anyLoading ? "Generating..." : "Generate Content →"}
+            {anyLoading ? "Generating..." : "Generate Content"}
           </button>
         </div>
 
@@ -550,7 +550,7 @@ export default function App() {
 
         {!hasResults && !anyLoading && (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <div style={{ fontSize: 26, marginBottom: 10, color: "#1A1A1A" }}>✦</div>
+            <div style={{ fontSize: 26, marginBottom: 10, color: "#1A1A1A" }}>*</div>
             <p style={{ fontSize: 12, fontFamily: "sans-serif", color: "#2E2E2E", maxWidth: 280, margin: "0 auto", lineHeight: 1.6 }}>Analyze your content, configure your strategy, and generate.</p>
           </div>
         )}
@@ -598,7 +598,7 @@ function RadioRow({ active, onClick, label }) {
 }
 
 function Dot({ i, color = "#C9A84C" }) {
-  return <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block", animation: "pulse 1.2s ease-in-out infinite", animationDelay: `${i * 0.2}s` }} />;
+  return <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block", animation: "pulse 1.2s ease-in-out infinite", animationDelay: (i * 0.2) + "s" }} />;
 }
 
 function OutputCard({ platform, result, isLoading, isCopied, onCopy }) {
