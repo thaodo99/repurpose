@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-// ── Constants ──────────────────────────────────────────────────────────────
 const GOALS = [
   { id: "awareness", label: "Awareness" },
   { id: "leadgen", label: "Lead Gen" },
@@ -44,8 +43,8 @@ const WORD_LIMITS = {
   linkedin: { min: 50, max: 300, default: 150 },
   twitter: { min: 20, max: 120, default: 60, label: "per tweet" },
   email: { min: 80, max: 400, default: 200 },
-  instagram: { min: 30, max: 200, default: 100, label: "words" },
-  facebook: { min: 50, max: 300, default: 150, label: "words" },
+  instagram: { min: 30, max: 200, default: 100 },
+  facebook: { min: 50, max: 300, default: 150 },
 };
 
 const THEME_COLORS = {
@@ -58,7 +57,6 @@ const THEME_COLORS = {
 
 const EXAMPLE = `OpenAI just released GPT-4o, a new model that can reason across audio, vision, and text in real time. The demo showed it tutoring a student in math by watching them solve a problem on paper, then coaching them verbally — like a real human tutor. It can also detect emotions in voice, translate languages live, and sing. The model responds at near-human speed with no lag. This changes how we think about AI assistants — they're no longer just text tools. They're becoming multimodal collaborators.`;
 
-// ── Prompt Builders ─────────────────────────────────────────────────────────
 function buildAnalysisPrompt(input) {
   return `Analyze this content and return ONLY valid JSON — no markdown, no backticks, no explanation:
 {
@@ -72,12 +70,9 @@ function buildAnalysisPrompt(input) {
     "contrarian": "<hook that challenges conventional wisdom, under 15 words>"
   }
 }
-
 Rules:
-- themes: 5–9 items total, mix types freely, only include types genuinely present
-- for each theme, set "platform" to which platform it's best suited for (or "all")
+- themes: 5–9 items total
 - hooks: punchy, specific, avoid generic phrasing
-
 Content:
 ${input}`;
 }
@@ -87,27 +82,27 @@ function buildGenerationPrompt(platformId, settings, input) {
 
   const goalMap = {
     awareness: "Brand awareness — make the insight memorable and shareable. No selling.",
-    leadgen: "Lead generation — create curiosity around a solution. End with a clear invitation (DM, link, resource).",
-    thought_leadership: "Thought leadership — share a bold opinion or original framework. Position the author as a trusted expert.",
-    product_launch: "Product launch — build excitement. Focus on transformation, not features. Build anticipation.",
+    leadgen: "Lead generation — create curiosity around a solution. End with a clear invitation.",
+    thought_leadership: "Thought leadership — share a bold opinion or original framework.",
+    product_launch: "Product launch — build excitement. Focus on transformation, not features.",
     hiring: "Hiring — showcase team culture, values, and what makes this opportunity special.",
-    engagement: "Community engagement — spark discussion. Be provocative, relatable, or emotionally resonant.",
+    engagement: "Community engagement — spark discussion. Be provocative or emotionally resonant.",
   };
 
   const audienceMap = {
-    founders: "Audience: founders & entrepreneurs. Speak to scale, risk, ambiguity, and growth decisions.",
-    pms: "Audience: product managers. Speak to trade-offs, user empathy, prioritization, and shipping.",
-    analysts: "Audience: data analysts. Speak to evidence, metrics, structured thinking, and precision.",
-    recruiters: "Audience: recruiters & talent leaders. Speak to people, process, culture, and org value.",
-    enterprise: "Audience: enterprise buyers & executives. Speak to ROI, risk reduction, and strategic outcomes.",
-    general: "Audience: general professional audience. Keep it clear, jargon-free, and broadly relatable.",
+    founders: "Audience: founders & entrepreneurs. Speak to scale, risk, and growth decisions.",
+    pms: "Audience: product managers. Speak to trade-offs, user empathy, and shipping.",
+    analysts: "Audience: data analysts. Speak to evidence, metrics, and structured thinking.",
+    recruiters: "Audience: recruiters & talent leaders. Speak to people, process, and culture.",
+    enterprise: "Audience: enterprise buyers & executives. Speak to ROI and strategic outcomes.",
+    general: "Audience: general professional audience. Keep it clear and broadly relatable.",
   };
 
   const ctaMap = {
-    soft: "CTA style: Soft — end with a gentle reflection or observation. No explicit ask.",
-    strong: "CTA style: Strong — a specific, direct call to action (follow, DM, click, comment).",
-    question: "CTA style: Question-driven — close with a thought-provoking question that invites replies.",
-    authority: "CTA style: Authority positioning — a confident closing statement that cements expertise.",
+    soft: "CTA style: Soft — end with a gentle reflection. No explicit ask.",
+    strong: "CTA style: Strong — a specific, direct call to action.",
+    question: "CTA style: Question-driven — close with a thought-provoking question.",
+    authority: "CTA style: Authority positioning — a confident closing statement.",
   };
 
   const storyLabel =
@@ -119,24 +114,24 @@ function buildGenerationPrompt(platformId, settings, input) {
 
   const emojiMap = {
     none: "No emoji whatsoever.",
-    some: "2–4 emoji sparingly, only where they add rhythm or meaning.",
-    many: "Emoji generously — as bullets, section markers, and visual emphasis.",
+    some: "2–4 emoji sparingly.",
+    many: "Emoji generously — as bullets, section markers, and emphasis.",
   };
 
   const wordNote = {
     linkedin: `Max ${wordLimit} words total.`,
     twitter: `Each tweet max ${wordLimit} words. 5–7 tweets numbered (1/, 2/, ...). Blank line between each.`,
     email: `Body max ${wordLimit} words. Must include "Subject:" label and "CTA:" label.`,
-    instagram: `Max ${wordLimit} words. Short punchy lines.`,
-    facebook: `Max ${wordLimit} words total.`,
+    instagram: `Max ${wordLimit} words. Short punchy lines. 5–10 hashtags at the bottom.`,
+    facebook: `Max ${wordLimit} words total. End with a question to drive comments.`,
   };
 
   const platformBase = {
     linkedin: "LinkedIn post. Strong hook in line 1. 3–5 relevant hashtags at the bottom.",
-    twitter: "Twitter/X thread. First tweet = attention-grabbing hook. Last tweet = CTA or summary.",
+    twitter: "Twitter/X thread. First tweet = hook. Last tweet = CTA or summary.",
     email: "Email newsletter snippet: Subject: label, engaging opening, 2–3 body paragraphs, CTA: label.",
-    instagram: "Instagram caption. Hook in line 1. Heavy use of line breaks for readability. 5–10 hashtags at the bottom. Punchy and visual — write as if describing something the viewer can see.",
-    facebook: "Facebook post. Conversational and warm. Longer form is fine. Tell a story or share an opinion. End with a question to drive comments. 1–2 hashtags max.",
+    instagram: "Instagram caption. Hook in line 1. Heavy line breaks. Punchy and visual.",
+    facebook: "Facebook post. Conversational and warm. Tell a story or share an opinion.",
   };
 
   return `You are a senior marketing strategist and expert copywriter.
@@ -151,22 +146,19 @@ ${audienceMap[audience]}
 ${ctaMap[ctaMode]}
 Writing mode: ${storyLabel}
 Emoji: ${emojiMap[emoji]}
-Headers: ${titles ? "Add bold section headers to aid scannability." : "No titles or headers."}
+Headers: ${titles ? "Add bold section headers." : "No titles or headers."}
 
-Return your response in EXACTLY this format — nothing else before or after:
+Return your response in EXACTLY this format:
 [POST]
 <the finished post>
 [WHY]
-<one sentence, max 20 words, explaining why this version specifically works for this platform, goal, and audience>`;
+<one sentence, max 20 words, explaining why this works for this platform, goal, and audience>`;
 }
 
-// ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [input, setInput] = useState("");
   const [analysis, setAnalysis] = useState(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-
-  // Strategy settings
   const [goal, setGoal] = useState("awareness");
   const [audience, setAudience] = useState("founders");
   const [ctaMode, setCtaMode] = useState("soft");
@@ -177,31 +169,24 @@ export default function App() {
     linkedin: WORD_LIMITS.linkedin.default,
     twitter: WORD_LIMITS.twitter.default,
     email: WORD_LIMITS.email.default,
+    instagram: WORD_LIMITS.instagram.default,
+    facebook: WORD_LIMITS.facebook.default,
   });
-
   const [results, setResults] = useState({});
   const [loading, setLoading] = useState({});
   const [copiedHook, setCopiedHook] = useState(null);
   const [copiedPlatform, setCopiedPlatform] = useState(null);
 
-  console.log("API KEY:", import.meta.env.VITE_ANTHROPIC_API_KEY);
   const handleFileUpload = async (file) => {
     const ext = file.name.split(".").pop().toLowerCase();
-  
-    if (ext === "txt") {
+    if (ext === "txt" || ext === "csv") {
       const text = await file.text();
       setInput(text);
-  
-    } else if (ext === "csv") {
-      const text = await file.text();
-      setInput(text);
-  
     } else if (ext === "docx") {
       const mammoth = await import("mammoth");
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       setInput(result.value);
-  
     } else if (ext === "pdf") {
       const pdfjsLib = await import("pdfjs-dist");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -215,8 +200,10 @@ export default function App() {
       }
       setInput(text);
     }
+    setAnalysis(null);
+    setResults({});
   };
-  
+
   const handleGoogleDoc = async (url) => {
     if (!url.includes("docs.google.com")) return;
     const docId = url.match(/[-\w]{25,}/)?.[0];
@@ -226,6 +213,8 @@ export default function App() {
       const res = await fetch(exportUrl);
       const text = await res.text();
       setInput(text);
+      setAnalysis(null);
+      setResults({});
     } catch {
       alert("Make sure the Google Doc is set to 'Anyone with the link can view'");
     }
@@ -270,9 +259,7 @@ export default function App() {
     const initLoad = {};
     PLATFORMS.forEach((p) => (initLoad[p.id] = true));
     setLoading(initLoad);
-
     const settings = { goal, audience, ctaMode, storySlider, emoji, titles };
-
     await Promise.all(
       PLATFORMS.map(async (platform) => {
         try {
@@ -311,7 +298,6 @@ export default function App() {
         .pill-btn:hover{border-color:#555 !important;color:#999 !important;}
       `}</style>
 
-      {/* ── Header ── */}
       <div style={{ borderBottom: "1px solid #1A1A1A", padding: "18px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
           <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.5px" }}>Repurpose</span>
@@ -326,7 +312,7 @@ export default function App() {
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 32px 60px" }}>
 
-        {/* ── 01 · Source Content ── */}
+        {/* 01 Source Content */}
         <SectionHeader num="01" title="Source Content" />
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
@@ -339,10 +325,8 @@ export default function App() {
             placeholder="Paste content here..."
             style={{ width: "100%", minHeight: 130, background: "#141414", border: "1px solid #222", borderRadius: 8, padding: "14px 18px", color: "#F0EDE6", fontSize: 15, lineHeight: 1.7, fontFamily: "'Georgia', serif", resize: "vertical", outline: "none", boxSizing: "border-box" }}
           />
-
-          {/* File upload + Google Doc URL */}
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <label style={{ fontSize: 12, color: "#555", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414" }}>
+            <label style={{ fontSize: 12, color: "#555", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414", whiteSpace: "nowrap" }}>
               Upload file
               <input type="file" accept=".txt,.pdf,.docx,.csv" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
             </label>
@@ -352,9 +336,14 @@ export default function App() {
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
           </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+            <button onClick={analyzeContent} disabled={!input.trim() || analysisLoading} style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: `1px solid ${input.trim() && !analysisLoading ? "#1D9E75" : "#222"}`, background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}>
+              {analysisLoading ? "Analyzing..." : "Analyze Content →"}
+            </button>
+          </div>
         </div>
 
-        {/* ── 02 · Content Intelligence ── */}
+        {/* 02 Content Intelligence */}
         {(analysis || analysisLoading) && (
           <div style={{ animation: "fadeUp 0.4s ease" }}>
             <SectionHeader num="02" title="Content Intelligence" accent="#1D9E75" />
@@ -363,13 +352,12 @@ export default function App() {
                 <div style={{ display: "flex", gap: 6, padding: "20px 0" }}>{[0,1,2].map(i => <Dot key={i} i={i} color="#1D9E75" />)}</div>
               ) : analysis && !analysis.error ? (
                 <>
-                  {/* Stats */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 20 }}>
                     {[
                       { label: "Source words", value: analysis.wordCount },
                       { label: "Ideas extracted", value: analysis.themes?.length ?? 0 },
                       { label: "Hook variants", value: 3 },
-                      { label: "Platforms ready", value: 3 },
+                      { label: "Platforms ready", value: 5 },
                     ].map(({ label, value }) => (
                       <div key={label} style={{ background: "#0B1A14", border: "1px solid #0F2B1E", borderRadius: 8, padding: "12px 16px" }}>
                         <div style={{ fontSize: 11, color: "#1D9E7580", fontFamily: "sans-serif", marginBottom: 6 }}>{label}</div>
@@ -377,8 +365,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Hook variants */}
                   <p style={sectionLabel}>Hook Variants</p>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
                     {[
@@ -395,8 +381,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Reuse map */}
                   <p style={sectionLabel}>Content Reuse Map</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                     {analysis.themes?.map((theme, i) => {
@@ -420,17 +404,13 @@ export default function App() {
           </div>
         )}
 
-        {/* ── 03 · Strategy Config ── */}
+        {/* 03 Strategy Config */}
         <SectionHeader num="03" title="Strategy Configuration" />
         <div style={{ marginBottom: 28 }}>
-
-          {/* Goal + Audience */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <PillSelector label="Campaign Goal" options={GOALS} value={goal} onChange={setGoal} />
             <PillSelector label="Target Audience" options={AUDIENCES} value={audience} onChange={setAudience} />
           </div>
-
-          {/* CTA Mode */}
           <div style={{ marginBottom: 14 }}>
             <p style={sectionLabel}>CTA Mode</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
@@ -442,8 +422,6 @@ export default function App() {
               ))}
             </div>
           </div>
-
-          {/* Writing mode + Emoji + Headers */}
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div style={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, padding: "14px 18px" }}>
               <p style={sectionLabel}>Writing Mode</p>
@@ -457,23 +435,19 @@ export default function App() {
                 {storySlider <= 30 ? "Logic-first. Evidence and structure lead every paragraph." : storySlider <= 70 ? "Mix of data and narrative. Grounded but human." : "Story-first. Scene, tension, and resolution drive the post."}
               </p>
             </div>
-
             <div style={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, padding: "14px 18px" }}>
               <p style={sectionLabel}>Emoji</p>
               {EMOJI_OPTS.map((e) => <RadioRow key={e.id} active={emoji === e.id} onClick={() => setEmoji(e.id)} label={e.label} />)}
             </div>
-
             <div style={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, padding: "14px 18px" }}>
               <p style={sectionLabel}>Headers</p>
               <RadioRow active={!titles} onClick={() => setTitles(false)} label="No titles" />
               <RadioRow active={titles} onClick={() => setTitles(true)} label="Add titles" />
             </div>
           </div>
-
-          {/* Word limits */}
           <div style={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, padding: "14px 22px" }}>
             <p style={sectionLabel}>Word Limit per Platform</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 20 }}>
               {PLATFORMS.map((p) => {
                 const cfg = WORD_LIMITS[p.id];
                 const val = wordLimits[p.id];
@@ -481,16 +455,16 @@ export default function App() {
                 return (
                   <div key={p.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 18, height: 18, borderRadius: 3, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, color: "#fff", fontFamily: "sans-serif" }}>{p.icon}</span>
-                        <span style={{ fontSize: 12, fontFamily: "sans-serif", color: "#666" }}>{p.label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 16, height: 16, borderRadius: 3, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 700, color: "#fff", fontFamily: "sans-serif" }}>{p.icon}</span>
+                        <span style={{ fontSize: 11, fontFamily: "sans-serif", color: "#666" }}>{p.label}</span>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: "#C9A84C" }}>{val}<span style={{ fontSize: 10, color: "#444", fontWeight: 400 }}> {cfg.label || "words"}</span></span>
                     </div>
-                    <input type="range" min={cfg.min} max={cfg.max} step={10} value={val} onChange={(e) => setWordLimits(prev => ({ ...prev, [p.id]: Number(e.target.value) }))} style={{ background: `linear-gradient(to right, #C9A84C ${pct}%, #252525 ${pct}%)` }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "#C9A84C" }}>{val}<span style={{ fontSize: 10, color: "#444", fontWeight: 400 }}> {cfg.label || "w"}</span></span>
+                    <input type="range" min={cfg.min} max={cfg.max} step={10} value={val} onChange={(e) => setWordLimits(prev => ({ ...prev, [p.id]: Number(e.target.value) }))} style={{ background: `linear-gradient(to right, #C9A84C ${pct}%, #252525 ${pct}%)`, marginTop: 6 }} />
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                      <span style={{ fontSize: 10, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.min}</span>
-                      <span style={{ fontSize: 10, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.max}</span>
+                      <span style={{ fontSize: 9, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.min}</span>
+                      <span style={{ fontSize: 9, color: "#2E2E2E", fontFamily: "monospace" }}>{cfg.max}</span>
                     </div>
                   </div>
                 );
@@ -499,27 +473,20 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Generate Button ── */}
+        {/* Generate Button */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
           <button onClick={repurpose} disabled={!input.trim() || anyLoading} style={{ background: input.trim() && !anyLoading ? "#C9A84C" : "#161616", color: input.trim() && !anyLoading ? "#0D0D0D" : "#333", border: "none", borderRadius: 6, padding: "12px 36px", fontSize: 14, fontWeight: 700, fontFamily: "sans-serif", cursor: input.trim() && !anyLoading ? "pointer" : "not-allowed", letterSpacing: "0.04em" }}>
             {anyLoading ? "Generating..." : "Generate Content →"}
           </button>
         </div>
 
-        {/* ── 04 · Generated Content ── */}
+        {/* 04 Generated Content */}
         {(hasResults || anyLoading) && (
           <div style={{ animation: "fadeUp 0.3s ease" }}>
             <SectionHeader num="04" title="Generated Content" />
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {PLATFORMS.map((p) => (
-                <OutputCard
-                  key={p.id}
-                  platform={p}
-                  result={results[p.id]}
-                  isLoading={loading[p.id]}
-                  isCopied={copiedPlatform === p.id}
-                  onCopy={() => copyPlatform(p.id, results[p.id]?.post || "")}
-                />
+                <OutputCard key={p.id} platform={p} result={results[p.id]} isLoading={loading[p.id]} isCopied={copiedPlatform === p.id} onCopy={() => copyPlatform(p.id, results[p.id]?.post || "")} />
               ))}
             </div>
           </div>
@@ -536,10 +503,8 @@ export default function App() {
   );
 }
 
-// ── Shared Styles ──────────────────────────────────────────────────────────
 const sectionLabel = { fontSize: 11, color: "#555", fontFamily: "sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 10px" };
 
-// ── Sub-components ─────────────────────────────────────────────────────────
 function SectionHeader({ num, title, accent = "#C9A84C" }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
