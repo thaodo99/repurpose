@@ -1,4 +1,8 @@
 import { useState } from "react";
+import mammoth from "mammoth";
+import * as pdfjsLib from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 const GOALS = [
   { id: "awareness", label: "Awareness" },
@@ -56,6 +60,17 @@ const THEME_COLORS = {
 };
 
 const EXAMPLE = `OpenAI just released GPT-4o, a new model that can reason across audio, vision, and text in real time. The demo showed it tutoring a student in math by watching them solve a problem on paper, then coaching them verbally — like a real human tutor. It can also detect emotions in voice, translate languages live, and sing. The model responds at near-human speed with no lag. This changes how we think about AI assistants — they're no longer just text tools. They're becoming multimodal collaborators.`;
+
+async function extractTextFromPdf(arrayBuffer) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map((item) => item.str).join(" ") + "\n";
+  }
+  return text;
+}
 
 function buildAnalysisPrompt(input) {
   return `Analyze this content and return ONLY valid JSON — no markdown, no backticks, no explanation:
@@ -176,64 +191,83 @@ export default function App() {
   const [loading, setLoading] = useState({});
   const [copiedHook, setCopiedHook] = useState(null);
   const [copiedPlatform, setCopiedPlatform] = useState(null);
-  const [gdocUrl, setGdocUrl] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [fileStatus, setFileStatus] = useState("");
 
   const handleFileUpload = async (file) => {
     const ext = file.name.split(".").pop().toLowerCase();
+    setFileStatus("Reading file...");
     try {
-      if (ext === "txt" || ext === "csv") {
-        const text = await file.text();
-        setInput(text);
+      let text = "";
+      if (ext === "txt") {
+        text = await file.text();
       } else if (ext === "docx") {
-        const mammoth = await import("mammoth");
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
-        setInput(result.value);
+        text = result.value;
       } else if (ext === "pdf") {
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let text = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map((item) => item.str).join(" ") + "\n";
-        }
-        setInput(text);
+        text = await extractTextFromPdf(arrayBuffer);
       } else {
-        alert("Unsupported file type. Use .txt, .pdf, .docx, or .csv");
+        setFileStatus("Unsupported file type.");
         return;
       }
-      setAnalysis(null);
-      setResults({});
-    } catch (err) {
-      alert("Failed to read file: " + err.message);
-    }
-  };
-
-  const handleGoogleDoc = async () => {
-    const url = gdocUrl.trim();
-    if (!url || (!url.includes("docs.google.com") && !url.includes("drive.google.com"))) {
-      alert("Please paste a valid Google Docs or Drive URL");
-      return;
-    }
-    const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
-    if (!docId) {
-      alert("Couldn't extract document ID from URL");
-      return;
-    }
-    const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
-    try {
-      const res = await fetch(exportUrl);
-      if (!res.ok) throw new Error("Could not fetch document");
-      const text = await res.text();
+      if (!text.trim()) {
+        setFileStatus("Could not extract text from file.");
+        return;
+      }
       setInput(text);
       setAnalysis(null);
       setResults({});
-    } catch {
-      alert("Make sure the document is set to 'Anyone with the link can view'");
+      setFileStatus(`✓ ${file.name} loaded (${text.trim().split(/\s+/).length} words)`);
+    } catch (err) {
+      setFileStatus("Error reading file: " + err.message);
     }
+  };
+
+  const handleUrlFetch = async () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    setUrlLoading(true);
+
+    try {
+      // Google Docs
+      if (url.includes("docs.google.com/document") || url.includes("drive.google.com")) {
+        const docId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
+        if (!docId) throw new Error("Couldn't extract document ID");
+
+        // Try as Google Doc text export
+        const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+        const res = await fetch(exportUrl);
+        if (!res.ok) throw new Error("Could not fetch — make sure sharing is set to 'Anyone with the link'");
+        const text = await res.text();
+        setInput(text);
+        setAnalysis(null);
+        setResults({});
+        setUrlInput("");
+
+      // Google Drive PDF
+      } else if (url.includes("drive.google.com/file")) {
+        const fileId = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/)?.[1];
+        if (!fileId) throw new Error("Couldn't extract file ID");
+        const pdfUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        const res = await fetch(pdfUrl);
+        if (!res.ok) throw new Error("Could not fetch PDF");
+        const arrayBuffer = await res.arrayBuffer();
+        const text = await extractTextFromPdf(arrayBuffer);
+        setInput(text);
+        setAnalysis(null);
+        setResults({});
+        setUrlInput("");
+
+      } else {
+        throw new Error("Please paste a Google Docs or Google Drive URL");
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    setUrlLoading(false);
   };
 
   const callClaude = async (prompt, maxTokens = 900) => {
@@ -328,39 +362,42 @@ export default function App() {
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 32px 60px" }}>
 
-        {/* 01 Source Content */}
         <SectionHeader num="01" title="Source Content" />
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 11, color: "#444", fontFamily: "sans-serif" }}>Paste any article, transcript, or notes</span>
-            <button onClick={() => { setInput(EXAMPLE); setAnalysis(null); setResults({}); }} style={{ fontSize: 12, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", fontFamily: "sans-serif", padding: 0 }}>Load example →</button>
+            <button onClick={() => { setInput(EXAMPLE); setAnalysis(null); setResults({}); setFileStatus(""); }} style={{ fontSize: 12, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", fontFamily: "sans-serif", padding: 0 }}>Load example →</button>
           </div>
           <textarea
             value={input}
-            onChange={(e) => { setInput(e.target.value); setAnalysis(null); setResults({}); }}
+            onChange={(e) => { setInput(e.target.value); setAnalysis(null); setResults({}); setFileStatus(""); }}
             placeholder="Paste content here..."
             style={{ width: "100%", minHeight: 130, background: "#141414", border: "1px solid #222", borderRadius: 8, padding: "14px 18px", color: "#F0EDE6", fontSize: 15, lineHeight: 1.7, fontFamily: "'Georgia', serif", resize: "vertical", outline: "none", boxSizing: "border-box" }}
           />
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <label style={{ fontSize: 12, color: "#555", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414", whiteSpace: "nowrap" }}>
-              Upload file (.txt .pdf .docx .csv)
-              <input type="file" accept=".txt,.pdf,.docx,.csv" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
+
+          {/* File Upload */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+            <label style={{ fontSize: 12, color: "#666", border: "1px solid #222", borderRadius: 6, padding: "7px 16px", cursor: "pointer", fontFamily: "sans-serif", background: "#141414", whiteSpace: "nowrap" }}>
+              Upload .txt / .pdf / .docx
+              <input type="file" accept=".txt,.pdf,.docx" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); }} />
             </label>
+            {fileStatus && <span style={{ fontSize: 11, color: fileStatus.startsWith("✓") ? "#1D9E75" : "#D4537E", fontFamily: "sans-serif" }}>{fileStatus}</span>}
           </div>
+
+          {/* Google URL */}
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <input
-              value={gdocUrl}
-              onChange={(e) => setGdocUrl(e.target.value)}
-              placeholder="Or paste a Google Doc / Drive URL..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleUrlFetch()}
+              placeholder="Or paste a Google Doc / Drive PDF URL..."
               style={{ flex: 1, background: "#141414", border: "1px solid #222", borderRadius: 6, padding: "7px 14px", color: "#F0EDE6", fontSize: 12, fontFamily: "sans-serif", outline: "none" }}
             />
-            <button
-              onClick={handleGoogleDoc}
-              style={{ fontSize: 12, color: "#C9A84C", border: "1px solid #C9A84C44", borderRadius: 6, padding: "7px 14px", background: "transparent", cursor: "pointer", fontFamily: "sans-serif", whiteSpace: "nowrap" }}
-            >
-              Fetch →
+            <button onClick={handleUrlFetch} disabled={!urlInput.trim() || urlLoading} style={{ fontSize: 12, color: urlInput.trim() ? "#C9A84C" : "#333", border: `1px solid ${urlInput.trim() ? "#C9A84C44" : "#222"}`, borderRadius: 6, padding: "7px 16px", background: "transparent", cursor: urlInput.trim() ? "pointer" : "not-allowed", fontFamily: "sans-serif", whiteSpace: "nowrap" }}>
+              {urlLoading ? "Fetching..." : "Fetch →"}
             </button>
           </div>
+
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
             <button onClick={analyzeContent} disabled={!input.trim() || analysisLoading} style={{ color: input.trim() && !analysisLoading ? "#1D9E75" : "#2A2A2A", border: `1px solid ${input.trim() && !analysisLoading ? "#1D9E75" : "#222"}`, background: "transparent", borderRadius: 6, padding: "9px 22px", fontSize: 13, fontWeight: 600, fontFamily: "sans-serif", cursor: input.trim() && !analysisLoading ? "pointer" : "not-allowed", letterSpacing: "0.03em" }}>
               {analysisLoading ? "Analyzing..." : "Analyze Content →"}
@@ -368,7 +405,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* 02 Content Intelligence */}
         {(analysis || analysisLoading) && (
           <div style={{ animation: "fadeUp 0.4s ease" }}>
             <SectionHeader num="02" title="Content Intelligence" accent="#1D9E75" />
@@ -429,7 +465,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 03 Strategy Config */}
         <SectionHeader num="03" title="Strategy Configuration" />
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
@@ -496,14 +531,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Generate Button */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
           <button onClick={repurpose} disabled={!input.trim() || anyLoading} style={{ background: input.trim() && !anyLoading ? "#C9A84C" : "#161616", color: input.trim() && !anyLoading ? "#0D0D0D" : "#333", border: "none", borderRadius: 6, padding: "12px 36px", fontSize: 14, fontWeight: 700, fontFamily: "sans-serif", cursor: input.trim() && !anyLoading ? "pointer" : "not-allowed", letterSpacing: "0.04em" }}>
             {anyLoading ? "Generating..." : "Generate Content →"}
           </button>
         </div>
 
-        {/* 04 Generated Content */}
         {(hasResults || anyLoading) && (
           <div style={{ animation: "fadeUp 0.3s ease" }}>
             <SectionHeader num="04" title="Generated Content" />
